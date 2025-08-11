@@ -1,0 +1,162 @@
+= Object list model
+
+:toc:
+:sectnums:
+
+== Intdoduction
+In this article we'll try to expose a list of objects that is coming from the Cpp side to expose to the QML one. We'll expose a simple `Person` class 
+
+== Architecture
+What will be done in this project, is creating a `Person` class on the Cpp side, creating some properties for it to be used in the QML side, and then display them in the QML through a ListView.
+
+=== Person object
+The person object is a simple Cpp Qt class that contains header and source like this:
+```cpp
+class Person : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QString names READ names WRITE setNames NOTIFY namesChanged)
+    Q_PROPERTY(QString favoriteColor READ favoriteColor WRITE setFavoriteColor NOTIFY favoriteColorChanged)
+    Q_PROPERTY(int age READ age WRITE setAge NOTIFY ageChanged)
+public:
+    explicit Person(QObject *parent = nullptr);
+    Person(const QString &names, const QString &favoritecolor,const int &age , QObject * parent = nullptr);
+    QString names() const;
+    QString favoriteColor() const;
+    int age() const;
+    void setNames(QString names);
+    void setFavoriteColor(QString favoriteColor);
+    void setAge(int age);
+
+signals:
+    void namesChanged(QString names);
+    void favoriteColorChanged(QString favoriteColor);
+    void ageChanged(int age);
+
+private:
+    QString m_names;
+    QString m_favoriteColor;
+    int m_age;
+};
+```
+
+NOTE: Note that all the `Q_PROPERTY` are there because we want to use each property on the QML side of the app.
+
+=== Person Source
+Now that we did have our header file, we need to implement the source file for this class that is:
+
+```cpp
+#include "person.hpp"
+
+Person::Person(QObject *parent) : QObject(parent)
+{
+
+}
+
+Person::Person(const QString &names, const QString &favoritecolor, const int &age, QObject *parent):
+    QObject(parent),m_names(names),m_favoriteColor(favoritecolor),m_age(age)
+{
+
+}
+
+QString Person::names() const
+{
+    return m_names;
+}
+
+QString Person::favoriteColor() const
+{
+    return m_favoriteColor;
+}
+
+int Person::age() const
+{
+    return m_age;
+}
+
+void Person::setNames(QString names)
+{
+    if (m_names == names)
+        return;
+
+    m_names = names;
+    emit namesChanged(m_names);
+}
+
+void Person::setFavoriteColor(QString favoriteColor)
+{
+    if (m_favoriteColor == favoriteColor)
+        return;
+
+    m_favoriteColor = favoriteColor;
+    emit favoriteColorChanged(m_favoriteColor);
+}
+
+void Person::setAge(int age)
+{
+    if (m_age == age)
+        return;
+
+    m_age = age;
+    emit ageChanged(m_age);
+}
+```
+
+=== QML side
+In order to use this model in the QML side, we are just going to create a simple `ListView` with some row layout to display the informations.
+
+```json
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import ObjectListModel
+
+Window {
+    id: rootId
+    width: 640
+    height: 480
+    visible: true
+    title: qsTr("Object list model")
+
+    ListView {
+        id: listViewId
+        anchors.fill: parent
+        model: personModel
+        spacing: 10
+        delegate: Rectangle {
+            height: 90
+            radius: 10
+            color: "gray"
+            border.color: "darkRed"
+            width: rootId.width
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 20
+                TextField {
+                    text: names
+                    Layout.fillWidth: true
+                    background: Rectangle {
+                        color: "white"
+                    }
+                }
+                SpinBox {
+                    editable: true
+                    value: age
+                    Layout.fillWidth: true
+                    background: Rectangle {
+                        color: "white"
+                    }
+                }
+                Rectangle {
+                    width: 50
+                    height: 50
+                    color: favoriteColor
+                }
+            }
+        }
+    }
+}
+```
+
+IMPORTANT: This project contains a model that you can edit on the QML side, HOWEVER, there is no way to modify the changes on the Cpp side.
+
+IMPORTANT: However, here we just create a model on the cpp side, but if you want you can create a model on the QML side intead. It will depends on your usecase.
